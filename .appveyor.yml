@@ -1,0 +1,39 @@
+platform:
+  - x86
+  - x64
+
+configuration:
+  - Debug
+  - Release
+
+matrix:
+  fast_finish: true
+
+clone_folder: C:\grip
+
+environment:
+  PYTHON_PATH: "C:/Python27"
+  PYTHON_PACKAGE_PATH: "C:/Python27/Scripts"
+
+init:
+  - cmd: git config --global core.autocrlf input
+  - ps: (new-object net.webclient).DownloadFile('https://bootstrap.pypa.io/get-pip.py', 'C:/get-pip.py')
+  - "%PYTHON_PATH%/python.exe C:/get-pip.py"
+  - "%PYTHON_PACKAGE_PATH%/pip.exe install nose"
+
+install:
+  - cmd: git submodule update --init --quiet
+
+build:
+  parallel: true  # enable MSBuild parallel builds
+  verbosity: minimal
+
+build_script:
+- cmd: >-
+    set PLATFORM="%PLATFORM%"
+    if "%APPVEYOR_PROJECT_NAME%"=="grip-vs2015" ( call scripts/build-vs2015 ) 
+    else if "%APPVEYOR_PROJECT_NAME%"=="grip-vs2017" ( call scripts/build-vs2017 ) 
+#test_script:
+#- cmd: >-
+#    cd C:\grip\b
+#    ctest

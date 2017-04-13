@@ -1,0 +1,95 @@
+
+
+sudo: false
+language: cpp
+
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    - llvm-toolchain-precise-3.8
+    - george-edison55-precise-backports
+    packages:
+    - cmake
+    - cmake-data
+    - g++-5
+    - gcc-5
+    - clang-3.8
+    - ninja-build
+
+cache:
+  apt: true
+
+matrix:
+  fast_finish: true
+  include:
+    # linux gcc Debug build
+    - os: linux
+      compiler: gcc
+      env: COMPILER_NAME=GCC GRIP_BUILD_TYPE=Debug
+    # linux gcc Release build
+    - os: linux
+      compiler: gcc
+      env: COMPILER_NAME=GCC GRIP_BUILD_TYPE=Release
+    # linux clang Debug build
+    - os: linux
+      compiler: clang
+      env: COMPILER_NAME=CLANG GRIP_BUILD_TYPE=Debug
+    # linux clang Release build
+    - os: linux
+      compiler: clang
+      env: COMPILER_NAME=CLANG GRIP_BUILD_TYPE=Release
+    # osx clang Debug build
+    - os: osx
+      compiler: clang
+      env: COMPILER_NAME=CLANG GRIP_BUILD_TYPE=Debug
+    # osx clang Release build
+    - os: osx
+      compiler: clang
+      env: COMPILER_NAME=CLANG GRIP_BUILD_TYPE=Release
+
+
+before_install:
+ - |
+  if [ "${TRAVIS_OS_NAME}" = 'linux' ]; then
+    curl -O https://cmake.org/files/v3.8/cmake-3.8.0-Linux-x86_64.tar.gz
+    tar -xf cmake-3.8.0-Linux-x86_64.tar.gz
+    export PATH=$PWD/cmake-3.8.0-Linux-x86_64/bin:$PATH
+  fi
+  if [ "${TRAVIS_OS_NAME}" = 'osx' ]; then
+    brew update
+    brew install ninja
+    brew upgrade cmake
+    brew install cmake
+  fi
+
+install:
+ - |
+  git submodule update --init --depth 1
+  export PATH=$HOME/.local/bin:$PATH
+
+before_script:
+ - |
+  if [ "${COMPILER_NAME}" = 'GCC' ]; then
+    export CC=gcc-5
+    export CXX=g++-5
+  fi
+  if [ "${COMPILER_NAME}" = 'CLANG' ] && [ "${TRAVIS_OS_NAME}" = 'linux' ]; then
+    export CC=clang-3.8
+    export CXX=clang++-3.8
+  fi
+
+script:
+ - |
+  echo "${TRAVIS_OS_NAME} ${CXX} ${GRIP_BUILD_TYPE} build...";
+  cd ${TRAVIS_BUILD_DIR}
+  mkdir build && cd build
+  if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+    cmake -GNinja -DCMAKE_BUILD_TYPE=${GRIP_BUILD_TYPE} -DGRIP_BUILD_OS="Linux" ..
+  fi
+  if [ "${TRAVIS_OS_NAME}" = 'osx' ]; then
+    cmake -GNinja -DCMAKE_BUILD_TYPE=${GRIP_BUILD_TYPE} -DGRIP_BUILD_OS="OS X" ..
+  fi
+  cmake --build . --config ${GRIP_BUILD_TYPE}
+
+#  ctest --output-on-failure
